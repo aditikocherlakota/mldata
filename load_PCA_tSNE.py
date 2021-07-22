@@ -123,8 +123,10 @@ markerline, stemlines, baseline = ax.stem(x, y, '-.')
 plt.setp(markerline, 'markerfacecolor', 'b')
 plt.setp(baseline, 'color','r', 'linewidth', 2)
 cursor = FollowDotCursor(ax, x, y, tolerance=20)
-
+plt.pcolormesh(tSNE)
+plt.colorbar()
 plt.show()
+
 
 
 
