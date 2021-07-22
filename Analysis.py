@@ -667,7 +667,7 @@ def main():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test_path", type=str, default="Aditi Data")
+    parser.add_argument("--test_path", type=str, default=".")
     parser.add_argument("--data_path", type=str, default="data_logs")
     parser.add_argument("--analysis_path", type=str, default="Analysis")
     parser.add_argument("--delta_path", type=str, default="Delta")

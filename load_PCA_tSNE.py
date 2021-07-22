@@ -2,10 +2,15 @@ import numpy as np
 import bz2
 import pickle
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
+
+#color points using Analysis/Delta/dataPoints_0_False.pkl
+#clickable point and label
+#save point's original data to file
+#click and save multiple points
 
 
-
-ml_path = 'Aditi Data/Analysis/ML'
+ml_path = './Analysis/ML'
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
 
@@ -24,7 +29,6 @@ def plot_scatter(X, title=None):
 
 
 # ---- tSNE
-
 with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE = pickle.load(f)
 
