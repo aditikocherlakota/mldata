@@ -3,6 +3,8 @@ import bz2
 import pickle
 import matplotlib.pyplot as plt
 import scipy.spatial as spatial
+from mpl_toolkits import mplot3d
+import mplcursors
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 
 #color points using Analysis/Delta/dataPoints_0_False.pkl
@@ -114,18 +116,23 @@ with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_norma
     tSNE = pickle.load(f)
 
 # plot_scatter(tSNE)
-fig, ax = plt.subplots()
 x = tSNE[:,0]
 y = tSNE[:,1]
 z = tSNE[:,2]
 
-markerline, stemlines, baseline = ax.stem(x, y, '-.')
-plt.setp(markerline, 'markerfacecolor', 'b')
-plt.setp(baseline, 'color','r', 'linewidth', 2)
-cursor = FollowDotCursor(ax, x, y, tolerance=20)
+fig=plt.figure()
+
+ax=fig.gca(projection='3d')
+
+for xc, yc, zc in tSNE:
+        label = '(%f, %f, %f)' % (xc, yc, zc)
+        ax.text(xc, yc, zc, label)
+
+ax.scatter(x,y,z,zdir='z',s=20,c=None, depthshade=True)
+
+mplcursors.cursor(hover=True)
 
 plt.show()
-
 
 
 #----- PCA
