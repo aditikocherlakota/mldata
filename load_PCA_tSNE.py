@@ -6,6 +6,8 @@ import scipy.spatial as spatial
 from mpl_toolkits import mplot3d
 import mplcursors
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
+from matplotlib import cm, colors
+# from numpy import genfromtxt
 
 #color points using Analysis/Delta/dataPoints_0_False.pkl
 #clickable point and label
@@ -94,6 +96,8 @@ class FollowDotCursor(object):
             return self._points[0]
 
 ml_path = './Analysis/ML'
+delta_path = './Analysis/Delta'
+
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
 
@@ -115,6 +119,19 @@ def plot_scatter(X, title=None):
 with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE = pickle.load(f)
 
+# # delta 
+with bz2.BZ2File(delta_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
+    delta = pickle.load(f)
+fname = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+# # csv 
+# with bz2.BZ2File(delta_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
+#     delta = pickle.load(f)
+my_data = np.genfromtxt(fname, delimiter=',')
+
+
+maxColors = delta['maxDataPoint'][1] 
+midColors = delta['midDataPoint'][2] 
+minColors = delta['minDataPoint'][3] 
 # plot_scatter(tSNE)
 x = tSNE[:,0]
 y = tSNE[:,1]
@@ -122,16 +139,20 @@ z = tSNE[:,2]
 
 fig=plt.figure()
 
-ax=fig.gca(projection='3d')
+# ax=fig.gca(projection='3d')
+# ax.view_init(elev=0, azim=0)
 
-for xc, yc, zc in tSNE:
-        label = '(%f, %f, %f)' % (xc, yc, zc)
-        ax.text(xc, yc, zc, label)
+# for xc, yc, zc in tSNE:
+#         label = '(%f, %f, %f)' % (xc, yc, zc)
+#         ax.text(xc, yc, zc, label)
 
-ax.scatter(x,y,z,zdir='z',s=20,c=None, depthshade=True)
+# cNorm = colors.Normalize(vmin=z.min(), vmax=z.max())
+ax = fig.add_subplot(111, projection='3d')
 
+viridis = cm.get_cmap('viridis')
+##check that delta is normalized
+ax.scatter(x,y,z,zdir='z',s=20,c=my_data, cmap=viridis, depthshade=True)
 mplcursors.cursor(hover=True)
-
 plt.show()
 
 
