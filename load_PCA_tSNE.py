@@ -3,16 +3,19 @@ import bz2
 import pickle
 import matplotlib.pyplot as plt
 import scipy.spatial as spatial
-from mpl_toolkits import mplot3d
 import mplcursors
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
-from matplotlib import cm, colors
-# from numpy import genfromtxt
+from matplotlib import cm
 
-#color points using Analysis/Delta/dataPoints_0_False.pkl
-#clickable point and label
-#save point's original data to file
-#click and save multiple points
+
+# 1. save image - save in subdirectory with title: filename_[n]
+# vs save rotations option to save image rotated by 45 degrees all saved with filename_[n]
+
+#show the graoh on the screen and save it to a file if the user asks to save on disk, with the parameters of the function
+# if it is 3d, can the user view it from every direction. rotated 45 degrees
+#resolution- automatically saved in a relatively high resolution
+#no labeling for saving
+
 
 pi = np.pi
 cos = np.cos
@@ -119,40 +122,27 @@ def plot_scatter(X, title=None):
 with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE = pickle.load(f)
 
-# # delta 
-with bz2.BZ2File(delta_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-    delta = pickle.load(f)
-fname = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
-# # csv 
-# with bz2.BZ2File(delta_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-#     delta = pickle.load(f)
-my_data = np.genfromtxt(fname, delimiter=',')
+delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
+delta = np.genfromtxt(delta_csv, delimiter=',')
 
-maxColors = delta['maxDataPoint'][1] 
-midColors = delta['midDataPoint'][2] 
-minColors = delta['minDataPoint'][3] 
-# plot_scatter(tSNE)
-x = tSNE[:,0]
-y = tSNE[:,1]
-z = tSNE[:,2]
+# plot_scatter(tSNE, delta_csv)
 
 fig=plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 
 # ax=fig.gca(projection='3d')
 # ax.view_init(elev=0, azim=0)
 
-# for xc, yc, zc in tSNE:
-#         label = '(%f, %f, %f)' % (xc, yc, zc)
-#         ax.text(xc, yc, zc, label)
 
-# cNorm = colors.Normalize(vmin=z.min(), vmax=z.max())
-ax = fig.add_subplot(111, projection='3d')
+x = tSNE[:,0]
+y = tSNE[:,1]
+z = tSNE[:,2]
 
-viridis = cm.get_cmap('viridis')
 ##check that delta is normalized
-ax.scatter(x,y,z,zdir='z',s=20,c=my_data, cmap=viridis, depthshade=True)
+ax.scatter(x,y,z,zdir='z',s=20,c=delta, depthshade=True)
 mplcursors.cursor(hover=True)
+
 plt.show()
 
 
@@ -163,3 +153,4 @@ plt.show()
 
 # plot_scatter(pca)
 # plt.show()    
+
