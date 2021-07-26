@@ -10,8 +10,8 @@ from matplotlib import cm
 import os
 import time
 
-# 1. save image - save in subdirectory with title: filename_[n], use higher resolution
-# 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
+# done 1. save image - save in subdirectory with title: filename_[n], use higher resolution
+# done 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
 
 # 3. for 2d graph, saving/labeling functionality
 # 4. Try plotting large dataset
