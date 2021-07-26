@@ -26,13 +26,37 @@ image_path = './Analysis/Images'
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
 
-def on_click(event, ax):
-    pressed = ax.button_pressed
-    ax.button_pressed = -1 # some value that doesn't make sense.
-    coords = ax.format_coord(event.xdata, event.ydata) # coordinates string in the form x=value, y=value, z= value
-    ax.button_pressed = pressed
-    print(coords)
-    return coords
+class SnaptoCursor:
+    """
+    Like Cursor but the crosshair snaps to the nearest x, y point.
+    For simplicity, this assumes that *x* is sorted.
+    """
+
+    def __init__(self, ax, x, y,z):
+        self.ax = ax
+        self.lx = ax.axhline(color='k')  # the horiz line
+        self.ly = ax.axvline(color='k')  # the vert line
+        self.x = x
+        self.y = y
+        self.z = z
+        # text location in axes coords
+        self.txt = ax.text(0.7, 0.9, 0.5,'', transform=ax.transAxes)
+
+    def mouse_move(self, event):
+        if not event.inaxes:
+            return
+        x, y, z = event.xdata, event.ydata, event.zdata
+        indx = min(np.searchsorted(self.x, x), len(self.x) - 1)
+        x = self.x[indx]
+        y = self.y[indx]
+        z = self.z[indx]
+        # update the line positions
+        # self.lx.set_ydata(y)
+        # self.ly.set_xdata(x)
+
+        self.txt.set_text('x=%1.2f, y=%1.2f' % (x, y))
+        print('x=%1.2f, y=%1.2f' % (x, y))
+        self.ax.figure.canvas.draw()
 
 class Save:
     def __init__(self, ax):
@@ -74,8 +98,10 @@ def plot_scatter(X, delta, title=None):
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
         data = Save(ax)
-        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
-        cid = fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, ax))
+        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=20)
+        # cid = fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, ax))
+        snap_cursor = SnaptoCursor(ax, X[:,0], X[:,1], X[:,2])
+        fig.canvas.mpl_connect('motion_notify_event', snap_cursor.mouse_move)
         return [data.rotation_button, data.save_button]
 
     if title is not None:
