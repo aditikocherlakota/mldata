@@ -13,9 +13,13 @@ import time
 # done 1. save image - save in subdirectory with title: filename_[n], use higher resolution
 # done 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
 
-# 3. for 2d graph, saving/labeling functionality
+# 3. for 2d graph, clickable/labeling functionality and also save image functionality
+
+# 4. try using ckd trees to save points from 3d plot
+
+# give up at some point and just save 3 graphs withh two variables
+
 # 4. Try plotting large dataset
-# 5. clicakble point for 3d dataset
 
 # left out- labeling for 3d graph, saving parameters of the function (??), colorbar, clickable points
 
@@ -25,14 +29,6 @@ image_path = './Analysis/Images'
 
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
-
-def on_click(event, ax):
-    pressed = ax.button_pressed
-    ax.button_pressed = -1 # some value that doesn't make sense.
-    coords = ax.format_coord(event.xdata, event.ydata) # coordinates string in the form x=value, y=value, z= value
-    ax.button_pressed = pressed
-    print(coords)
-    return coords
 
 class Save:
     def __init__(self, ax):
@@ -70,12 +66,10 @@ def plot_scatter(X, delta, title=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         ax.scatter(X[:,0], X[:,1], alpha=0.5)
-
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
         data = Save(ax)
         ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
-        cid = fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, ax))
         return [data.rotation_button, data.save_button]
 
     if title is not None:
