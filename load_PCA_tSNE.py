@@ -13,7 +13,8 @@ import time
 # done 1. save image - save in subdirectory with title: filename_[n], use higher resolution
 # done 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
 
-# 3. for 2d graph, clickable/labeling functionality and also save image functionality
+# 3. for 2d graph, clickable/labeling functionality and also save image functionality,
+# when doing clickable think about working with large amounts of data!
 
 # 4. try using ckd trees to save points from 3d plot
 
