@@ -10,6 +10,9 @@ from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting
 #save point's original data to file
 #click and save multiple points
 
+number_of_frames_to_analyse = 0
+save_frames_from_begining = False
+
 pi = np.pi
 cos = np.cos
 
@@ -91,45 +94,42 @@ class FollowDotCursor(object):
             # IndexError: index out of bounds
             return self._points[0]
 
-ml_path = './Analysis/ML'
-number_of_frames_to_analyse = 0
-save_frames_from_begining = False
-
-def plot_scatter(X, title=None):
+def plot_scatter(X, delta, title=None, twoD=False):
     fig = plt.figure()
-    
-    if X.shape[1] == 2: # 2D
+    if twoD:
         ax = plt.subplot(111)
-        ax.scatter(X[:,0], X[:,1], alpha=0.5)
+        x= tSNE[:,0]
+        y = tSNE[:,1]
+        z = tSNE[:,2]
+        ax.scatter(x,y,z,  c=delta)
+    elif X.shape[1] == 2: # 2D
+        ax = plt.subplot(111)
+        x= tSNE[:,0]
+        y = tSNE[:,1]
+        ax.scatter(x,y,  c=delta)
+        cursor = FollowDotCursor(ax, x, y, tolerance=20)
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(X[:,0], X[:,1], X[:,2], alpha=0.5)
+        ax.scatter(X[:,0], X[:,1], X[:,2])
     
     if title is not None:
         plt.title(title) 
 
 
+ml_path = './Analysis/ML'
+delta_path = './Analysis/Delta'
+
 # ---- tSNE
 with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE = pickle.load(f)
 
-# plot_scatter(tSNE)
-fig, ax = plt.subplots()
-x = tSNE[:,0]
-y = tSNE[:,1]
-z = tSNE[:,2]
+delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
-markerline, stemlines, baseline = ax.stem(x, y, '-.')
-plt.setp(markerline, 'markerfacecolor', 'b')
-plt.setp(baseline, 'color','r', 'linewidth', 2)
-cursor = FollowDotCursor(ax, x, y, tolerance=20)
-plt.pcolormesh(tSNE)
-plt.colorbar()
+delta = np.genfromtxt(delta_csv, delimiter=',')
+
+plot_scatter(tSNE[:, 0:2], delta)
 plt.show()
-
-
-
-
+    
 #----- PCA
 
 # with bz2.BZ2File(ml_path + '/PCA_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
