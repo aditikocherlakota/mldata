@@ -123,51 +123,44 @@ class Save:
         if not os.path.isdir(image_path):
             os.makedirs(image_path)
         save_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
-        # rotate_ax = plt.axes([0.81, 0.05, 0.1, 0.075])
-
         save_button = Button(save_ax, 'Save', color='grey')
         save_button.on_clicked(self.save)
         self.save_button = save_button
 
-        # rotation_button = Button(rotate_ax, 'Rotate', color='grey')
-        # rotation_button.on_clicked(self.rotate)
-        # self.rotation_button = rotation_button
-
-
     def save(self,event):
         print("saving")
-        plt.savefig(self.image_file + self.file_type, dpi=1000,bbox_inches='tight')
+        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.file_type, dpi=1000,bbox_inches='tight')
         plt.draw()
 
-    # def rotate(self,event):
-    #     print("rotating")
-    #     for ii in range(0,360,45):
-    #         self.ax.view_init(30, ii)
-    #         plt.draw()
-    #         plt.pause(1)
-    #         plt.savefig(self.image_file + "_%d" % ii + self.file_type)
-    #     plt.draw()
+class Save_3D(Save):
+    def __init__(self, ax):
+        Save.__init__(self,ax)
+        rotate_ax = plt.axes([0.81, 0.05, 0.1, 0.075])
+        rotation_button = Button(rotate_ax, 'Rotate', color='grey')
+        rotation_button.on_clicked(self.rotate)
+        self.rotation_button = rotation_button
+    def rotate(self,event):
+        print("rotating")
+        for ii in range(0,360,45):
+            self.ax.view_init(30, ii)
+            plt.draw()
+            plt.pause(1)
+            plt.savefig(self.image_file + "_%d" % ii + self.file_type)
+        plt.draw()
 
 def plot_scatter(X, delta, title=None, twoD=False):
-    # if twoD:
-    #     ax = plt.subplot(111)
-    #     x= tSNE[:,0]
-    #     y = tSNE[:,1]
-    #     z = tSNE[:,2]
-    #     ax.scatter(x,y,z,  c=delta)
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
-
         ax.scatter(X[:,0], X[:,1], c=delta)
         data = Save(ax)
         cursor = FollowDotCursor(ax, X[:,0], X[:,1], tolerance=20)
         return [data.save_button]
-    # elif X.shape[1] == 3: # 3D
-    #     ax = fig.add_subplot(111, projection='3d')
-    #     data = Save(ax)
-    #     ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
-    #     return [data.rotation_button, data.save_button]
+    elif X.shape[1] == 3: # 3D
+        ax = fig.add_subplot(111, projection='3d')
+        data = Save_3D(ax)
+        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
+        return [data.rotation_button, data.save_button]
 
     if title is not None:
         plt.title(title) 
@@ -182,8 +175,8 @@ delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + st
 
 delta = np.genfromtxt(delta_csv, delimiter=',')
 
-# plot_scatter(tSNE[:, 0:2], delta)
-[save] = plot_scatter(tSNE[:, 0:2], delta)
+# [save] = plot_scatter(tSNE[:, 0:2], delta)
+[save, rotate] = plot_scatter(tSNE, delta)
 
 plt.show()
     
