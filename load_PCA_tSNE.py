@@ -80,9 +80,10 @@ class FollowDotCursor(object):
         ax = self.ax
         # event.inaxes is always the current axis. If you use twinx, ax could be
         # a different axis.
+        x, y = event.xdata, event.ydata
+        # within = ax.get_position().contains(event.x,event.y)
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
-        
         elif event.inaxes is None:
             return
         else:
@@ -134,6 +135,10 @@ class ClickDotCursor(FollowDotCursor):
         self.clicked_points = []
     
     def on_click(self, event):
+        # within = self.ax.get_position().contains(event.x,event.y)
+        # if not within:
+        #     return
+
         x, y = event.xdata, event.ydata
         _, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
         self.clicked_points.append(idx)
@@ -205,20 +210,22 @@ with bz2.BZ2File(data_path + '/dataPoints_' + str(number_of_frames_to_analyse) +
     tSNE = pickle.load(f)
 
 
-# np.savetxt("onethird_dataPoints_0_False.csv", tSNE[0:67,:], delimiter=",")
+# np.savetxt("onethird_dataPoints_0_False.csv", tSNE[0][0:67], delimiter=",")
 
 
 with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE_norm = pickle.load(f)
 
-delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
-delta = np.genfromtxt(delta_csv, delimiter=',')
+print("end")
+# delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
-[save] = plot_scatter(tSNE_norm[:,0:2], delta)
-# [save, rotate] = plot_scatter(tSNE_norm, delta)
+# delta = np.genfromtxt(delta_csv, delimiter=',')
 
-plt.show()
+# [save] = plot_scatter(tSNE_norm[:,0:2], delta)
+# # [save, rotate] = plot_scatter(tSNE_norm, delta)
+
+# plt.show()
     
 #----- PCA
 
