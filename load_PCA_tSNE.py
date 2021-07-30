@@ -37,6 +37,91 @@ save_frames_from_begining = False
 pi = np.pi
 cos = np.cos
 
+def fmt3d(x, y, z):
+    return 'x: {x:0.2f}\ny: {y:0.2f}\nz: {z:0.2f}'.format(x=x, y=y, z=z)
+class Follow3DDotCursor(object):
+    """Display the x,y location of the nearest data point.
+    https://stackoverflow.com/a/4674445/190597 (Joe Kington)
+    https://stackoverflow.com/a/13306887/190597 (unutbu)
+    https://stackoverflow.com/a/15454427/190597 (unutbu)
+    """
+    def __init__(self, ax, x, y, z, tolerance=5, formatter=fmt3d, offsets=(-20, 20)):
+        x = np.asarray(x, dtype='float')
+        y = np.asarray(y, dtype='float')
+        z = np.asarray(z, dtype='float')
+        # mask = ~(np.isnan(x) | np.isnan(y) | np.isnan(z))
+        # x = x[mask]
+        # y = y[mask]
+        # z = y[mask]
+        self._points = np.column_stack((x, y, z))
+        # self.offsets = offsets
+        # y = y[np.abs(y-y.mean()) <= 3*y.std()]
+        # self.scale = x.ptp()
+        # self.scale = y.ptp() / self.scale if self.scale else 1
+        self.tree = spatial.cKDTree(self._points)
+        self.formatter = formatter
+        self.tolerance = tolerance
+        self.ax = ax
+        self.fig = ax.figure
+        # self.ax.xaxis.set_label_position('top')
+        # self.dot = ax.scatter(
+        #     [x.min()], [y.min()], s=130, color='green', alpha=0.7)
+        # self.annotation = self.setup_annotation()
+        plt.connect('motion_notify_event', self)
+        plt.connect('button_press_event', self.on_clicked)
+    
+    def on_clicked(self, event):
+        print(event)
+        print("xdata, ydata: ", event.xdata, event.ydata)
+        print("x, y: ", event.x, event.y)
+    
+
+    # def scaled(self, points):
+    #     points = np.asarray(points)
+    #     return points * (self.scale, 1)
+
+    def __call__(self, event):
+        ax = self.ax
+        # event.inaxes is always the current axis. If you use twinx, ax could be
+        # a different axis.
+        if event.inaxes == ax:
+            x, y = event.xdata, event.ydata
+            # print(x, y)
+        elif event.inaxes is None:
+            return
+        else:
+            inv = ax.transData.inverted()
+            x, y = inv.transform([(event.x, event.y)]).ravel()
+        # annotation = self.annotation
+        # x, y = self.snap(x, y)
+        # annotation.xy = x, y
+        # annotation.set_text(self.formatter(x, y))
+        # self.dot.set_offsets(np.column_stack((x, y)))
+        # bbox = self.annotation.get_window_extent()
+        # self.fig.canvas.blit(bbox)
+        # self.fig.canvas.draw_idle()
+
+    # def setup_annotation(self):
+    #     """Draw and hide the annotation box."""
+    #     annotation = self.ax.annotate(
+    #         '', xy=(0, 0), ha = 'right',
+    #         xytext = self.offsets, textcoords = 'offset points', va = 'bottom',
+    #         bbox = dict(
+    #             boxstyle='round,pad=0.5', fc='yellow', alpha=0.75),
+    #         arrowprops = dict(
+    #             arrowstyle='->', connectionstyle='arc3,rad=0'))
+    #     return annotation
+
+    # def snap(self, x, y):
+    #     """Return the value in self.tree closest to x, y."""
+    #     dist, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
+    #     try:
+    #         return self._points[idx]
+    #     except IndexError:
+    #         # IndexError: index out of bounds
+    #         return self._points[0]
+
+
 def fmt(x, y):
     return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
@@ -159,7 +244,9 @@ def plot_scatter(X, delta, title=None, twoD=False):
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
         data = Save_3D(ax)
+        cursor = Follow3DDotCursor(ax, X[:,0], X[:,1], X[:,2], tolerance=20)
         ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
+        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta)
         return [data.rotation_button, data.save_button]
 
     if title is not None:
@@ -176,7 +263,10 @@ delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + st
 delta = np.genfromtxt(delta_csv, delimiter=',')
 
 # [save] = plot_scatter(tSNE[:, 0:2], delta)
-[save, rotate] = plot_scatter(tSNE, delta)
+# [save, rotate] = plot_scatter(tSNE, delta)
+hello = np.array([[1, 2, 3], [4, 5, 6]], np.int32)
+delta = [1,2]
+[save, rotate] = plot_scatter(hello, delta)
 
 plt.show()
     
