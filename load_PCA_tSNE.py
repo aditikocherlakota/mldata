@@ -27,9 +27,11 @@ import time
 # left out- labeling for 3d graph, saving parameters of the function (??), colorbar, clickable points
 
 
+data_path = './Analysis'
 ml_path = './Analysis/ML'
 delta_path = './Analysis/Delta'
 image_path = './Analysis/Images'
+clicked_path = './Analysis/Clicked_Points'
 
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
@@ -39,7 +41,6 @@ cos = np.cos
 
 def fmt(x, y):
     return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
-
 class FollowDotCursor(object):
     """Display the x,y location of the nearest data point.
     https://stackoverflow.com/a/4674445/190597 (Joe Kington)
@@ -81,6 +82,7 @@ class FollowDotCursor(object):
         # a different axis.
         if event.inaxes == ax:
             x, y = event.xdata, event.ydata
+        
         elif event.inaxes is None:
             return
         else:
@@ -115,22 +117,53 @@ class FollowDotCursor(object):
             # IndexError: index out of bounds
             return self._points[0]
 
+class ClickDotCursor(FollowDotCursor):
+    def __init__(self, ax, x, y, tolerance=5, formatter=fmt, offsets=(-20, 20)):
+        FollowDotCursor.__init__(self, ax,x,y, tolerance, formatter, offsets)
+        self.clicked_file = clicked_path + '/clicked_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining)
+        self.clicked_file_type = '.csv'
+        if not os.path.isdir(clicked_path):
+            os.makedirs(clicked_path)
+        clicked_ax = plt.axes([0.2, 0.05, 0.17, 0.075])
+
+        clicked_button = Button(clicked_ax, 'Log Points', color='grey')
+        clicked_button.on_clicked(self.flush_clicked)
+        self.clicked_button = clicked_button
+
+        cid = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        self.clicked_points = []
+    
+    def on_click(self, event):
+        x, y = event.xdata, event.ydata
+        _, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
+        self.clicked_points.append(idx)
+
+    def flush_clicked(self, event):
+        print("flush clicked")
+        print(self.clicked_points)
 class Save:
     def __init__(self, ax):
         self.ax = ax;
         self.image_file = image_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining)
-        self.file_type = '.png'
+        self.image_file_type = '.png'
+
         if not os.path.isdir(image_path):
             os.makedirs(image_path)
+
+
         save_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
+
         save_button = Button(save_ax, 'Save', color='grey')
         save_button.on_clicked(self.save)
         self.save_button = save_button
 
+
     def save(self,event):
         print("saving")
-        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.file_type, dpi=1000,bbox_inches='tight')
+        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.image_file_type, dpi=1000,bbox_inches='tight')
         plt.draw()
+
+
 
 class Save_3D(Save):
     def __init__(self, ax):
@@ -145,7 +178,7 @@ class Save_3D(Save):
             self.ax.view_init(30, ii)
             plt.draw()
             plt.pause(1)
-            plt.savefig(self.image_file + "_%d" % ii + self.file_type)
+            plt.savefig(self.image_file + "_%d" % ii + self.image_file_type)
         plt.draw()
 
 def plot_scatter(X, delta, title=None, twoD=False):
@@ -154,7 +187,7 @@ def plot_scatter(X, delta, title=None, twoD=False):
         plt.subplots_adjust(bottom=0.2)
         ax.scatter(X[:,0], X[:,1], c=delta)
         data = Save(ax)
-        cursor = FollowDotCursor(ax, X[:,0], X[:,1], tolerance=20)
+        cursor = ClickDotCursor(ax, X[:,0], X[:,1], tolerance=20)
         return [data.save_button]
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
@@ -168,15 +201,22 @@ def plot_scatter(X, delta, title=None, twoD=False):
 # ---- tSNE
 fig = plt.figure()
 
-with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
+with bz2.BZ2File(data_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
     tSNE = pickle.load(f)
+
+
+# np.savetxt("onethird_dataPoints_0_False.csv", tSNE[0:67,:], delimiter=",")
+
+
+with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
+    tSNE_norm = pickle.load(f)
 
 delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
 delta = np.genfromtxt(delta_csv, delimiter=',')
 
-# [save] = plot_scatter(tSNE[:, 0:2], delta)
-[save, rotate] = plot_scatter(tSNE, delta)
+[save] = plot_scatter(tSNE_norm[:,0:2], delta)
+# [save, rotate] = plot_scatter(tSNE_norm, delta)
 
 plt.show()
     
