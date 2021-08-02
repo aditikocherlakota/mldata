@@ -2,189 +2,77 @@ import numpy as np
 import bz2
 import pickle
 import matplotlib.pyplot as plt
-import scipy.spatial as spatial
-from matplotlib.widgets import Button
-from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
-from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
-from matplotlib import cm
 import os
-import time
-
-# done 1. save image - save in subdirectory with title: filename_[n], use higher resolution
-# done 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
-
-# 3. for 2d graph, clickable/labeling functionality and also save image functionality,
-# when doing clickable think about working with large amounts of data!
-
-# 4. try using ckd trees to save points from 3d plot
-
-# give up at some point and just save 3 graphs withh two variables
-
-# 4. Try plotting large dataset
-
-#5. right filename for isngle graph saving
-
-# left out- labeling for 3d graph, saving parameters of the function (??), colorbar, clickable points
 
 
-ml_path = './Analysis/ML'
-delta_path = './Analysis/Delta'
-image_path = './Analysis/Images'
 
+ml_path = 'Aditi Data/Analysis/ML'
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
 
-pi = np.pi
-cos = np.cos
 
-def fmt(x, y):
-    return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
-
-class FollowDotCursor(object):
-    """Display the x,y location of the nearest data point.
-    https://stackoverflow.com/a/4674445/190597 (Joe Kington)
-    https://stackoverflow.com/a/13306887/190597 (unutbu)
-    https://stackoverflow.com/a/15454427/190597 (unutbu)
-    """
-    def __init__(self, ax, x, y, tolerance=5, formatter=fmt, offsets=(-20, 20)):
-        try:
-            x = np.asarray(x, dtype='float')
-        except (TypeError, ValueError):
-            x = np.asarray(mdates.date2num(x), dtype='float')
-        y = np.asarray(y, dtype='float')
-        mask = ~(np.isnan(x) | np.isnan(y))
-        x = x[mask]
-        y = y[mask]
-        self._points = np.column_stack((x, y))
-        self.offsets = offsets
-        y = y[np.abs(y-y.mean()) <= 3*y.std()]
-        self.scale = x.ptp()
-        self.scale = y.ptp() / self.scale if self.scale else 1
-        self.tree = spatial.cKDTree(self.scaled(self._points))
-        self.formatter = formatter
-        self.tolerance = tolerance
-        self.ax = ax
-        self.fig = ax.figure
-        self.ax.xaxis.set_label_position('top')
-        self.dot = ax.scatter(
-            [x.min()], [y.min()], s=130, color='green', alpha=0.7)
-        self.annotation = self.setup_annotation()
-        plt.connect('motion_notify_event', self)
-
-    def scaled(self, points):
-        points = np.asarray(points)
-        return points * (self.scale, 1)
-
-    def __call__(self, event):
-        ax = self.ax
-        # event.inaxes is always the current axis. If you use twinx, ax could be
-        # a different axis.
-        if event.inaxes == ax:
-            x, y = event.xdata, event.ydata
-        elif event.inaxes is None:
-            return
-        else:
-            inv = ax.transData.inverted()
-            x, y = inv.transform([(event.x, event.y)]).ravel()
-        annotation = self.annotation
-        x, y = self.snap(x, y)
-        annotation.xy = x, y
-        annotation.set_text(self.formatter(x, y))
-        self.dot.set_offsets(np.column_stack((x, y)))
-        bbox = self.annotation.get_window_extent()
-        self.fig.canvas.blit(bbox)
-        self.fig.canvas.draw_idle()
-
-    def setup_annotation(self):
-        """Draw and hide the annotation box."""
-        annotation = self.ax.annotate(
-            '', xy=(0, 0), ha = 'right',
-            xytext = self.offsets, textcoords = 'offset points', va = 'bottom',
-            bbox = dict(
-                boxstyle='round,pad=0.5', fc='yellow', alpha=0.75),
-            arrowprops = dict(
-                arrowstyle='->', connectionstyle='arc3,rad=0'))
-        return annotation
-
-    def snap(self, x, y):
-        """Return the value in self.tree closest to x, y."""
-        dist, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
-        try:
-            return self._points[idx]
-        except IndexError:
-            # IndexError: index out of bounds
-            return self._points[0]
-
-class Save:
-    def __init__(self, ax):
-        self.ax = ax;
-        self.image_file = image_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining)
-        self.file_type = '.png'
-        if not os.path.isdir(image_path):
-            os.makedirs(image_path)
-        save_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
-        save_button = Button(save_ax, 'Save', color='grey')
-        save_button.on_clicked(self.save)
-        self.save_button = save_button
-
-    def save(self,event):
-        print("saving")
-        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.file_type, dpi=1000,bbox_inches='tight')
-        plt.draw()
-
-class Save_3D(Save):
-    def __init__(self, ax):
-        Save.__init__(self,ax)
-        rotate_ax = plt.axes([0.81, 0.05, 0.1, 0.075])
-        rotation_button = Button(rotate_ax, 'Rotate', color='grey')
-        rotation_button.on_clicked(self.rotate)
-        self.rotation_button = rotation_button
-    def rotate(self,event):
-        print("rotating")
-        for ii in range(0,360,45):
-            self.ax.view_init(30, ii)
-            plt.draw()
-            plt.pause(1)
-            plt.savefig(self.image_file + "_%d" % ii + self.file_type)
-        plt.draw()
-
-def plot_scatter(X, delta, title=None, twoD=False):
-    if X.shape[1] == 2: # 2D
+def plot_scatter(PCA_Filename, title=None, Savefilename=None, path=None, colorFilename=None):
+    global args
+    
+    X = list()
+    with bz2.BZ2File(PCA_Filename, 'rb') as f:
+        while True:
+            try:
+                X.extend(pickle.load(f))
+            except EOFError:
+                break        
+    X = np.array(X).reshape(-1, X[0].shape[0])
+    
+    color_normalier = None
+    if colorFilename is not None:
+        import matplotlib
+        color_data = np.loadtxt(colorFilename, delimiter=",")
+        color_normalier = matplotlib.colors.Normalize(vmin=min(color_data), vmax=max(color_data))
+        
+    #fix size issues
+    if X.shape[0] > color_data.shape[0]:
+        X = X[:color_data.shape[0],:]
+    else:
+        color_data = color_data[:X.shape[0]]
+    
+    
+    fig = plt.figure()
+    fig.set_size_inches(30,18)
+    
+    if X.shape[1] == 2:  # 2D
         ax = plt.subplot(111)
-        plt.subplots_adjust(bottom=0.2)
-        ax.scatter(X[:,0], X[:,1], c=delta)
-        data = Save(ax)
-        cursor = FollowDotCursor(ax, X[:,0], X[:,1], tolerance=20)
-        return [data.save_button]
-    elif X.shape[1] == 3: # 3D
-        ax = fig.add_subplot(111, projection='3d')
-        data = Save_3D(ax)
-        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
-        return [data.rotation_button, data.save_button]
+        sc = ax.scatter(X[:, 0], X[:, 1], c=color_data, norm=color_normalier, alpha=0.5)
+    elif X.shape[1] == 3:  # 3D
+        ax = fig.add_subplot(111, projection="3d")
+        sc = ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color_data, norm=color_normalier, alpha=0.5)
+        
+    if color_data is not None:
+        plt.colorbar(sc)
 
     if title is not None:
-        plt.title(title) 
-
-# ---- tSNE
-fig = plt.figure()
-
-with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-    tSNE = pickle.load(f)
-
-delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
-
-delta = np.genfromtxt(delta_csv, delimiter=',')
-
-# [save] = plot_scatter(tSNE[:, 0:2], delta)
-[save, rotate] = plot_scatter(tSNE, delta)
-
-plt.show()
+        plt.title(title)
     
+    if Savefilename is None:
+        plt.show()
+    else:
+        elevation = None
+        angles = np.linspace(0, 360, 21)[:-1]  # A list of 20 angles between 0 and 360
+        prefix = '_'
+        path += " - " + title
+        os.makedirs(path, exist_ok=True,)
+        for i, angle in enumerate(angles):
+            ax.view_init(elev=elevation, azim=angle)
+            fname = path + "/" + Savefilename + '%s%03d.jpeg' % (prefix, i)
+            plt.savefig(fname, dpi=300)
+  
+
 #----- PCA
 
-# with bz2.BZ2File(ml_path + '/PCA_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-#     pca = pickle.load(f)
+with bz2.BZ2File(ml_path + '/PCA_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '_Volt.pkl', 'rb') as f:
+    pca = pickle.load(f)
 
-# plot_scatter(pca)
-# plt.show()    
-
+# -- All cells
+path = ml_path + "/PCA_" + str(number_of_frames_to_analyse)
+PCA_filename = path +  '_' + str(save_frames_from_begining) + '_Volt.pkl'
+color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+plot_scatter(PCA_filename, path=path, Savefilename='All Cells Volt - unsupervise', colorFilename=color_filename, title='All Cells Volt - unsupervise')
