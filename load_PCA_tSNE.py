@@ -168,8 +168,6 @@ def plot_scatter(X, delta, title=None):
 # ---- tSNE
 fig = plt.figure()
 
-# with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-#     tSNE = pickle.load(f)
 
 PCA_fname = ml_path + '/PCA_' + str(number_of_frames_to_analyse)+ '_' + str(save_frames_from_begining) + '_Volt.pkl'
 with bz2.BZ2File(PCA_fname, 'rb') as f:
@@ -185,21 +183,12 @@ with bz2.BZ2File(PCA_fname, 'rb') as f:
     Y = X
     X = np.array(X).reshape(-1, X[0].shape[0])
 
-# delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
 delta = np.genfromtxt(color_filename, delimiter=',')
 
-# [save] = plot_scatter(X[:,1:], delta)
+[save] = plot_scatter(X[:,1:], delta)
 # [save, rotate] = plot_scatter(X, delta)
 
 plt.show()
     
-#----- PCA
-
-# with bz2.BZ2File(ml_path + '/PCA_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-#     pca = pickle.load(f)
-
-# plot_scatter(pca)
-# plt.show()    
-
