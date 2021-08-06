@@ -148,7 +148,7 @@ class Save_3D(Save):
             plt.savefig(self.image_file + "_%d" % ii + self.file_type)
         plt.draw()
 
-def plot_scatter(X, delta, title=None, twoD=False):
+def plot_scatter(X, delta, title=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
@@ -168,15 +168,30 @@ def plot_scatter(X, delta, title=None, twoD=False):
 # ---- tSNE
 fig = plt.figure()
 
-with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-    tSNE = pickle.load(f)
+# with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
+#     tSNE = pickle.load(f)
 
-delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+PCA_fname = ml_path + '/PCA_' + str(number_of_frames_to_analyse)+ '_' + str(save_frames_from_begining) + '_Volt.pkl'
+with bz2.BZ2File(PCA_fname, 'rb') as f:
+    PCA = pickle.load(f)
 
-delta = np.genfromtxt(delta_csv, delimiter=',')
+    X = list()
+    with bz2.BZ2File(PCA_fname, 'rb') as f:
+        while True:
+            try:
+                X.extend(pickle.load(f))
+            except EOFError:
+                break        
+    Y = X
+    X = np.array(X).reshape(-1, X[0].shape[0])
 
-# [save] = plot_scatter(tSNE[:, 0:2], delta)
-[save, rotate] = plot_scatter(tSNE, delta)
+# delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+
+delta = np.genfromtxt(color_filename, delimiter=',')
+
+# [save] = plot_scatter(X[:,1:], delta)
+# [save, rotate] = plot_scatter(X, delta)
 
 plt.show()
     
