@@ -173,9 +173,6 @@ def plot_scatter(X, delta, title=None, Savefilename=None):
     if title is not None:
         plt.title(title) 
 
-
-
-
 fig = plt.figure()
 
 PCA_fname = ml_path + "/PCA_" + str(number_of_frames_to_analyse) +  '_' + str(save_frames_from_begining) + '_Volt.pkl'
