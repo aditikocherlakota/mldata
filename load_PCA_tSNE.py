@@ -29,8 +29,6 @@ import time
 
 ml_path = './Analysis/ML'
 delta_path = './Analysis/Delta'
-image_path = './Analysis/Images'
-
 number_of_frames_to_analyse = 0
 save_frames_from_begining = False
 
@@ -116,12 +114,13 @@ class FollowDotCursor(object):
             return self._points[0]
 
 class Save:
-    def __init__(self, ax):
+    def __init__(self, ax, Savefilename):
         self.ax = ax;
-        self.image_file = image_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining)
+        self.Savefilename = Savefilename
         self.file_type = '.png'
-        if not os.path.isdir(image_path):
-            os.makedirs(image_path)
+        self.image_path = ml_path + "/PCA_" + str(number_of_frames_to_analyse) + " - " + self.Savefilename
+        if not os.path.isdir(self.image_path):
+            os.makedirs(self.image_path)
         save_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
         save_button = Button(save_ax, 'Save', color='grey')
         save_button.on_clicked(self.save)
@@ -129,12 +128,13 @@ class Save:
 
     def save(self,event):
         print("saving")
-        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.file_type, dpi=1000,bbox_inches='tight')
+        fname = self.image_path + "/" + self.Savefilename + "2D"
+        plt.savefig(fname + ".jpeg", dpi=1000,bbox_inches='tight')
         plt.draw()
 
 class Save_3D(Save):
-    def __init__(self, ax):
-        Save.__init__(self,ax)
+    def __init__(self, ax, Savefilename):
+        Save.__init__(self,ax, Savefilename)
         rotate_ax = plt.axes([0.81, 0.05, 0.1, 0.075])
         rotation_button = Button(rotate_ax, 'Rotate', color='grey')
         rotation_button.on_clicked(self.rotate)
@@ -142,34 +142,44 @@ class Save_3D(Save):
     def rotate(self,event):
         print("rotating")
         for ii in range(0,360,45):
-            self.ax.view_init(30, ii)
+            prefix = 30
+            self.ax.view_init(prefix, ii)
             plt.draw()
             plt.pause(1)
-            plt.savefig(self.image_file + "_%d" % ii + self.file_type)
+            fname = self.image_path + "/" + self.Savefilename + "_" + '%s_%03d.jpeg' % (prefix, ii)
+            plt.savefig(fname)
+        plt.draw()
+    def save(self,event):
+        print("saving")
+        fname = self.image_path + "/" + self.Savefilename + "_" + '%03d.jpeg' % (self.ax.azim)
+        plt.savefig(fname, dpi=300)
         plt.draw()
 
-def plot_scatter(X, delta, title=None):
+
+def plot_scatter(X, delta, title=None, Savefilename=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
         ax.scatter(X[:,0], X[:,1], c=delta)
-        data = Save(ax)
+        data = Save(ax, Savefilename)
         cursor = FollowDotCursor(ax, X[:,0], X[:,1], tolerance=20)
         return [data.save_button]
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
-        data = Save_3D(ax)
+        data = Save_3D(ax, Savefilename)
         ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
         return [data.rotation_button, data.save_button]
 
     if title is not None:
         plt.title(title) 
 
-# ---- tSNE
+
+
+
 fig = plt.figure()
 
+PCA_fname = ml_path + "/PCA_" + str(number_of_frames_to_analyse) +  '_' + str(save_frames_from_begining) + '_Volt.pkl'
 
-PCA_fname = ml_path + '/PCA_' + str(number_of_frames_to_analyse)+ '_' + str(save_frames_from_begining) + '_Volt.pkl'
 with bz2.BZ2File(PCA_fname, 'rb') as f:
     PCA = pickle.load(f)
 
@@ -180,14 +190,15 @@ with bz2.BZ2File(PCA_fname, 'rb') as f:
                 X.extend(pickle.load(f))
             except EOFError:
                 break        
-    Y = X
     X = np.array(X).reshape(-1, X[0].shape[0])
 
 color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
 delta = np.genfromtxt(color_filename, delimiter=',')
 
-[save] = plot_scatter(X[:,1:], delta)
+# [save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+[save] = plot_scatter(X[:,0:2], delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+
 # [save, rotate] = plot_scatter(X, delta)
 
 plt.show()
