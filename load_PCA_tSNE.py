@@ -2,8 +2,10 @@ import numpy as np
 import bz2
 import pickle
 import matplotlib.pyplot as plt
+import _pickle as cpickle
 import scipy.spatial as spatial
 from matplotlib.widgets import Button
+from datetime import datetime
 from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 from matplotlib import cm
@@ -30,7 +32,7 @@ import time
 data_path = './Analysis'
 ml_path = './Analysis/ML'
 delta_path = './Analysis/Delta'
-image_path = './Analysis/Images'
+
 clicked_path = './Analysis/Clicked_Points'
 
 number_of_frames_to_analyse = 0
@@ -119,10 +121,11 @@ class FollowDotCursor(object):
             return self._points[0]
 
 class ClickDotCursor(FollowDotCursor):
-    def __init__(self, ax, x, y, tolerance=5, formatter=fmt, offsets=(-20, 20)):
+    def __init__(self, ax, x, y, num_rdata_files, tolerance=5, formatter=fmt, offsets=(-20, 20)):
         FollowDotCursor.__init__(self, ax,x,y, tolerance, formatter, offsets)
         self.clicked_file = clicked_path + '/clicked_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining)
         self.clicked_file_type = '.csv'
+        self.num_rdata_files = num_rdata_files
         if not os.path.isdir(clicked_path):
             os.makedirs(clicked_path)
         clicked_ax = plt.axes([0.2, 0.05, 0.17, 0.075])
@@ -132,7 +135,7 @@ class ClickDotCursor(FollowDotCursor):
         self.clicked_button = clicked_button
 
         cid = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-        self.clicked_points = []
+        self.clicked_points = set()
     
     def on_click(self, event):
         # within = self.ax.get_position().contains(event.x,event.y)
@@ -141,21 +144,46 @@ class ClickDotCursor(FollowDotCursor):
 
         x, y = event.xdata, event.ydata
         _, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
-        self.clicked_points.append(idx)
+        self.clicked_points.add(idx)
 
     def flush_clicked(self, event):
-        print("flush clicked")
-        print(self.clicked_points)
+        # sort the clicked points
+        clicked_list = sorted(self.clicked_points)
+        print(clicked_list)
+        line_num = 0
+        current = 0
+        clicked_fname = data_path + "/Clicked_Points/" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
+        done = False
+        for i in range(0, self.num_rdata_files):
+            if done == True:
+                print("Clickable points flushed")
+                break
+            raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
+            with bz2.BZ2File(raw_data_fname, 'rb') as f:
+                metadata = cpickle.load(f)
+                with open(clicked_fname, "ab") as clicked_file:
+                    while not done:
+                        try:
+                            if (line_num == clicked_list[current]):
+                                rdata = cpickle.load(f)
+                                line_num += 1
+                                cpickle.dump(rdata, clicked_file)
+                                current += 1
+                                if current >= len(clicked_list):
+                                    done = True
+                            else:
+                                cpickle.load(f)
+                                line_num += 1
+                        except EOFError:
+                            break        
 class Save:
-    def __init__(self, ax):
+    def __init__(self, ax, Savefilename):
         self.ax = ax;
-        self.image_file = image_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining)
-        self.image_file_type = '.png'
-
-        if not os.path.isdir(image_path):
-            os.makedirs(image_path)
-
-
+        self.Savefilename = Savefilename
+        self.file_type = '.png'
+        self.image_path = ml_path + "/PCA_" + str(number_of_frames_to_analyse) + " - " + self.Savefilename
+        if not os.path.isdir(self.image_path):
+            os.makedirs(self.image_path)
         save_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
 
         save_button = Button(save_ax, 'Save', color='grey')
@@ -165,14 +193,15 @@ class Save:
 
     def save(self,event):
         print("saving")
-        plt.savefig(self.image_file + "_" + str(self.ax.azim) + self.image_file_type, dpi=1000,bbox_inches='tight')
+        fname = self.image_path + "/" + self.Savefilename + "2D"
+        plt.savefig(fname + ".jpeg", dpi=1000,bbox_inches='tight')
         plt.draw()
 
 
 
 class Save_3D(Save):
-    def __init__(self, ax):
-        Save.__init__(self,ax)
+    def __init__(self, ax, Savefilename):
+        Save.__init__(self,ax, Savefilename)
         rotate_ax = plt.axes([0.81, 0.05, 0.1, 0.075])
         rotation_button = Button(rotate_ax, 'Rotate', color='grey')
         rotation_button.on_clicked(self.rotate)
@@ -180,58 +209,61 @@ class Save_3D(Save):
     def rotate(self,event):
         print("rotating")
         for ii in range(0,360,45):
-            self.ax.view_init(30, ii)
+            prefix = 30
+            self.ax.view_init(prefix, ii)
             plt.draw()
             plt.pause(1)
-            plt.savefig(self.image_file + "_%d" % ii + self.image_file_type)
+            fname = self.image_path + "/" + self.Savefilename + "_" + '%s_%03d.jpeg' % (prefix, ii)
+            plt.savefig(fname)
+        plt.draw()
+    def save(self,event):
+        print("saving")
+        fname = self.image_path + "/" + self.Savefilename + "_" + '%03d.jpeg' % (self.ax.azim)
+        plt.savefig(fname, dpi=300)
         plt.draw()
 
-def plot_scatter(X, delta, title=None, twoD=False):
+
+def plot_scatter(X, delta, title=None, Savefilename=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
         ax.scatter(X[:,0], X[:,1], c=delta)
-        data = Save(ax)
-        cursor = ClickDotCursor(ax, X[:,0], X[:,1], tolerance=20)
+        data = Save(ax, Savefilename)
+        cursor = ClickDotCursor(ax, X[:,0], X[:,1], 4, tolerance=20)
         return [data.save_button]
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
-        data = Save_3D(ax)
+        data = Save_3D(ax, Savefilename)
         ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
         return [data.rotation_button, data.save_button]
 
     if title is not None:
         plt.title(title) 
 
-# ---- tSNE
 fig = plt.figure()
 
-with bz2.BZ2File(data_path + '/dataPoints_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-    tSNE = pickle.load(f)
+PCA_fname = ml_path + "/PCA_" + str(number_of_frames_to_analyse) +  '_' + str(save_frames_from_begining) + '_Volt.pkl'
 
+with bz2.BZ2File(PCA_fname, 'rb') as f:
+    PCA = pickle.load(f)
 
-# np.savetxt("onethird_dataPoints_0_False.csv", tSNE[0][0:67], delimiter=",")
+    X = list()
+    with bz2.BZ2File(PCA_fname, 'rb') as f:
+        while True:
+            try:
+                X.extend(pickle.load(f))
+            except EOFError:
+                break        
+    X = np.array(X).reshape(-1, X[0].shape[0])
 
+color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
-with bz2.BZ2File(ml_path + '/tSNE_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-    tSNE_norm = pickle.load(f)
+delta = np.genfromtxt(color_filename, delimiter=',')
 
+# [save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+[save] = plot_scatter(X[:,0:2], delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
 
-print("end")
-# delta_csv = delta_path + '/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
+# [save, rotate] = plot_scatter(X, delta)
 
-# delta = np.genfromtxt(delta_csv, delimiter=',')
-
-# [save] = plot_scatter(tSNE_norm[:,0:2], delta)
-# # [save, rotate] = plot_scatter(tSNE_norm, delta)
-
-# plt.show()
+plt.show()
     
-#----- PCA
-
-# with bz2.BZ2File(ml_path + '/PCA_' + str(number_of_frames_to_analyse) + '_normalize_' + str(save_frames_from_begining) + '.pkl', 'rb') as f:
-#     pca = pickle.load(f)
-
-# plot_scatter(pca)
-# plt.show()    
-
