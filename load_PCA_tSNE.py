@@ -10,23 +10,28 @@ from mpl_toolkits.axes_grid1.inset_locator import InsetPosition
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 from matplotlib import cm
 import os
-import time
+import pylab
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
+
+
 
 # done 1. save image - save in subdirectory with title: filename_[n], use higher resolution
 # done 2. save rotations - option to save image rotated by 45 degrees all saved with filename_[n]
 
-# 3. for 2d graph, clickable/labeling functionality and also save image functionality,
-# when doing clickable think about working with large amounts of data!
+# done 3. for 2d graph, clickable/labeling functionality and also save image functionality,
+#5. done right filename for isngle graph saving
 
-# 4. try using ckd trees to save points from 3d plot
-
-# give up at some point and just save 3 graphs withh two variables
 
 # 4. Try plotting large dataset
 
-#5. right filename for isngle graph saving
+# questions: 
+# 1. what do the x y and z at bottom of screen come from?
+# 2. what will happen if i use ax.transData.transform on the x and y data coordinates and then inv.transform on those same coordinates
 
-# left out- labeling for 3d graph, saving parameters of the function (??), colorbar, clickable points
+# observations: 
+# 1. if i plot just one point: x y and z at bottom of the screen are the correct data values
+
 
 
 data_path = './Analysis'
@@ -119,6 +124,64 @@ class FollowDotCursor(object):
         except IndexError:
             # IndexError: index out of bounds
             return self._points[0]
+
+
+class ClickDotCursor_3D(FollowDotCursor):
+    def __init__(self, ax, x, y, num_rdata_files, tolerance=5, formatter=fmt, offsets=(-20, 20)):
+        FollowDotCursor.__init__(self, ax,x,y, tolerance, formatter, offsets)
+        self.clicked_file = clicked_path + '/clicked_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining)
+        self.clicked_file_type = '.csv'
+        self.num_rdata_files = num_rdata_files
+        if not os.path.isdir(clicked_path):
+            os.makedirs(clicked_path)
+        clicked_ax = plt.axes([0.2, 0.05, 0.17, 0.075])
+
+        clicked_button = Button(clicked_ax, 'Log Points', color='grey')
+        clicked_button.on_clicked(self.flush_clicked)
+        self.clicked_button = clicked_button
+
+        cid = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        self.clicked_points = set()
+    
+    def on_click(self, event):
+        # within = self.ax.get_position().contains(event.x,event.y)
+        # if not within:
+        #     return
+
+        x, y = event.xdata, event.ydata
+        _, idx = self.tree.query(self.scaled((x, y)), k=1, p=1)
+        self.clicked_points.add(idx)
+
+    def flush_clicked(self, event):
+        # sort the clicked points
+        clicked_list = sorted(self.clicked_points)
+        print(clicked_list)
+        line_num = 0
+        current = 0
+        clicked_fname = data_path + "/Clicked_Points/" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
+        done = False
+        for i in range(0, self.num_rdata_files):
+            if done == True:
+                print("Clickable points flushed")
+                break
+            raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
+            with bz2.BZ2File(raw_data_fname, 'rb') as f:
+                metadata = cpickle.load(f)
+                with open(clicked_fname, "ab") as clicked_file:
+                    while not done:
+                        try:
+                            if (line_num == clicked_list[current]):
+                                rdata = cpickle.load(f)
+                                line_num += 1
+                                cpickle.dump(rdata, clicked_file)
+                                current += 1
+                                if current >= len(clicked_list):
+                                    done = True
+                            else:
+                                cpickle.load(f)
+                                line_num += 1
+                        except EOFError:
+                            break        
 
 class ClickDotCursor(FollowDotCursor):
     def __init__(self, ax, x, y, num_rdata_files, tolerance=5, formatter=fmt, offsets=(-20, 20)):
@@ -223,18 +286,33 @@ class Save_3D(Save):
         plt.draw()
 
 
+    def on_motion(self, e):
+        # move your mouse to (1,1,1), and e.xdata, e.ydata will be the same as x2, y2
+        print(e)
+
 def plot_scatter(X, delta, title=None, Savefilename=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
-        ax.scatter(X[:,0], X[:,1], c=delta)
+        ax.scatter(X[1:5,0], X[1:5,1], c=delta)
+        # mpld3.show()
+        # inv = ax.transData.inverted()
+        # inv.transform((,  247.))
         data = Save(ax, Savefilename)
         cursor = ClickDotCursor(ax, X[:,0], X[:,1], 4, tolerance=20)
         return [data.save_button]
     elif X.shape[1] == 3: # 3D
         ax = fig.add_subplot(111, projection='3d')
         data = Save_3D(ax, Savefilename)
-        ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
+        # ax.scatter(X[1:5,0], X[1:5,1], X[1:5,2],c=delta[1:5],zdir='z')
+        # ax.scatter(X[:,0], X[:,1], X[:,2],c=delta,s=2.0)
+        # ax.scatter(X[1:3,0], X[1:3,1], X[1:3,2],c=delta[1:3])
+        fig.canvas.mpl_connect('button_press_event', data.on_motion)
+        ax.scatter(X[3,0], X[3,1], X[3,2],c=delta[1],zdir='z')
+        # print(ax.transData.transform((X[1,0], X[1,1])))
+        x2, y2, _ = proj3d.proj_transform(X[1,0], X[1,1], X[1,2], ax.get_proj())
+        # print("lmao: ", x2, y2, uhh)
+        # print("p1, p2, p3: ", X[1:5,0], X[1:5,1], X[1:5,2])
         return [data.rotation_button, data.save_button]
 
     if title is not None:
@@ -260,10 +338,12 @@ color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse)
 
 delta = np.genfromtxt(color_filename, delimiter=',')
 
-# [save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
-[save] = plot_scatter(X[:,0:2], delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+[save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+# [save] = plot_scatter(X[:,0:2], delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
 
 # [save, rotate] = plot_scatter(X, delta)
 
-plt.show()
+# plt.show()
+
+pylab.show()
     
