@@ -17,6 +17,7 @@ import pylab
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 import math
+import joblib
 data_path = './Analysis'
 ml_path = './Analysis/ML'
 delta_path = './Analysis/Delta'
@@ -27,7 +28,7 @@ clicked_path = './Analysis/Clicked_Experiment'
 def flush_clicked():
     # sort the clicked points
     num_points= 6805
-    clicked_list = [1]
+    clicked_list = [1275]
 
 
 
@@ -35,33 +36,28 @@ def flush_clicked():
     current = 0
     clicked_fname = clicked_path + "/" + "clicked_" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
     done = False
-
-
-    # raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
-    # with bz2.BZ2File(raw_data_fname, 'rb') as f:
-        # metadata = cpickle.load(f)
-        
     
     with open(clicked_fname, "wb") as clicked_file:
-        current = clicked_list[0]
+        data_ptr = clicked_list[current]
         while not done:
-            i = current * 4 // num_points
+            i = data_ptr * 4 // num_points
             raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
             with bz2.BZ2File(raw_data_fname, 'rb') as f:
-                try: 
-                    metadata = cpickle.load(f)
-                    if (line_num == clicked_list[current]):
-                        rdata = cpickle.load(f)
+                while not done:
+                    try: 
+                        metadata = cpickle.load(f)
+                        cpickle.dump(metadata, clicked_file)
+                        if (line_num == clicked_list[current]):
+                            rdata = cpickle.load(f)
+                            # cpickle.dump(rdata, clicked_file)
+                            current += 1
+                            if current >= len(clicked_list):
+                                done = True
+                        else:
+                            cpickle.load(f)
                         line_num += 1
-                        cpickle.dump(rdata, clicked_file)
-                        current += 1
-                        if current >= len(clicked_list):
-                            done = True
-                    else:
-                        cpickle.load(f)
-                        line_num += 1
-                except EOFError:
-                    continue  
+                    except EOFError:
+                        continue  
 
 
 def read_clicked():

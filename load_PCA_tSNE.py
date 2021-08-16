@@ -24,14 +24,28 @@ from mpl_toolkits.mplot3d import proj3d
 
 
 # 4. Try plotting large dataset
+#6. 3d clickable point
 
 # questions: 
+#can i make saving faster by not using dump() 
+# if not, investigate how to seek in a file
+# check the time it takes to just pickle.load a file,m
 # 1. what do the x y and z at bottom of screen come from?
 # 2. what will happen if i use ax.transData.transform on the x and y data coordinates and then inv.transform on those same coordinates
+# 3. what will happen if i look at all attributes of e/what they mean and figure out
+# if i can use the inverse transform to go from display-->data
+#difference between xdata ydata and x and y
+
+# 4. try project 3d with 1,1,1 plotted. is 1,1,1 the data and x2 and y2 are display coords?? 
+# if so is there an inverse to go from display coords to data
+#if it is the display coords then is x2 y2 axes coords/something else? then it may not be useful
+
+# if these fail hunt around more on internet
+
 
 # observations: 
 # 1. if i plot just one point: x y and z at bottom of the screen are the correct data values
-
+# 2. e in on_motion gives me all i know about the clicked point. 
 
 
 data_path = './Analysis'
@@ -172,16 +186,16 @@ class ClickDotCursor_3D(FollowDotCursor):
                         try:
                             if (line_num == clicked_list[current]):
                                 rdata = cpickle.load(f)
-                                line_num += 1
-                                cpickle.dump(rdata, clicked_file)
+                                # cpickle.dump(rdata, clicked_file)
                                 current += 1
                                 if current >= len(clicked_list):
                                     done = True
                             else:
                                 cpickle.load(f)
-                                line_num += 1
+                            line_num += 1
                         except EOFError:
-                            break        
+                            break 
+                # cpickle.dumps(yuh, clicked_file)
 
 class ClickDotCursor(FollowDotCursor):
     def __init__(self, ax, x, y, num_rdata_files, tolerance=5, formatter=fmt, offsets=(-20, 20)):
@@ -294,7 +308,7 @@ def plot_scatter(X, delta, title=None, Savefilename=None):
     if X.shape[1] == 2: # 2D
         ax = plt.subplot(111)
         plt.subplots_adjust(bottom=0.2)
-        ax.scatter(X[1:5,0], X[1:5,1], c=delta)
+        ax.scatter(X[:,0], X[:,1], c=delta)
         # mpld3.show()
         # inv = ax.transData.inverted()
         # inv.transform((,  247.))
@@ -334,11 +348,13 @@ with bz2.BZ2File(PCA_fname, 'rb') as f:
                 break        
     X = np.array(X).reshape(-1, X[0].shape[0])
 
+print(X.shape)
+
 color_filename = ml_path + '/../Delta/delta_' + str(number_of_frames_to_analyse) + '_' + str(save_frames_from_begining) + '.csv'
 
 delta = np.genfromtxt(color_filename, delimiter=',')
 
-[save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
+# [save,rotate] = plot_scatter(X, delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
 # [save] = plot_scatter(X[:,0:2], delta, title='All Cells Volt - unsupervise', Savefilename='All Cells Volt - unsupervise')
 
 # [save, rotate] = plot_scatter(X, delta)
