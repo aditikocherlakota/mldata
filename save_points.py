@@ -25,39 +25,37 @@ delta_path = './Analysis/Delta'
 clicked_path = './Analysis/Clicked_Experiment'
 
 
-def flush_clicked():
-    # sort the clicked points
-    num_points= 6805
-    clicked_list = [1275]
+# def flush_clicked():
+#     # sort the clicked points
+#     num_points= 6805
+#     clicked_list = [1275]
 
-
-
-    line_num = 0
-    current = 0
-    clicked_fname = clicked_path + "/" + "clicked_" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
-    done = False
+#     line_num = 0
+#     current = 0
+#     clicked_fname = clicked_path + "/" + "clicked_" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
+#     done = False
     
-    with open(clicked_fname, "wb") as clicked_file:
-        data_ptr = clicked_list[current]
-        while not done:
-            i = data_ptr * 4 // num_points
-            raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
-            with bz2.BZ2File(raw_data_fname, 'rb') as f:
-                while not done:
-                    try: 
-                        metadata = cpickle.load(f)
-                        cpickle.dump(metadata, clicked_file)
-                        if (line_num == clicked_list[current]):
-                            rdata = cpickle.load(f)
-                            # cpickle.dump(rdata, clicked_file)
-                            current += 1
-                            if current >= len(clicked_list):
-                                done = True
-                        else:
-                            cpickle.load(f)
-                        line_num += 1
-                    except EOFError:
-                        continue  
+#     with open(clicked_fname, "wb") as clicked_file:
+#         data_ptr = clicked_list[current]
+#         while not done:
+#             i = data_ptr * 4 // num_points
+#             raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
+#             with bz2.BZ2File(raw_data_fname, 'rb') as f:
+#                 while not done:
+#                     try: 
+#                         metadata = cpickle.load(f)
+#                         cpickle.dump(metadata, clicked_file)
+#                         if (line_num == clicked_list[current]):
+#                             rdata = cpickle.load(f)
+#                             # cpickle.dump(rdata, clicked_file)
+#                             current += 1
+#                             if current >= len(clicked_list):
+#                                 done = True
+#                         else:
+#                             cpickle.load(f)
+#                         line_num += 1
+#                     except EOFError:
+#                         continue  
 
 
 def read_clicked():
@@ -69,6 +67,72 @@ def read_clicked():
                     rdata = cpickle.load(f)
                 except EOFError:
                     break
+
+def flush_clicked():
+#     # sort the clicked points
+    num_points= 6805
+    clicked_list = [70]
+    clicked_fname = clicked_path + "/" + "clicked_" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
+
+    line_num = 0
+
+    clicked_index = 0
+
+    file_num = 0
+
+    done = False
+
+    with open(clicked_fname, "ab") as clicked_file:
+        while not done:
+            raw_data_fname = data_path + "/dataPoints." + str(file_num) + ".pkl"
+            with bz2.BZ2File(raw_data_fname, 'rb') as f:
+                metadata = joblib.load(f)
+                while True:
+                    try:
+                        raw_data = joblib.load(f)
+                        line_num+=1
+                        print(line_num)
+                        if line_num == clicked_list[clicked_index]:
+                            joblib.dump(raw_data, clicked_file)
+                            clicked_index += 1
+                            if (clicked_index >= len(clicked_list)):
+                                done = True
+                                break
+                    except EOFError:
+                        file_num+=1
+                        break
+
+                    
+
+
+        
+
+#     line_num = 0
+#     current = 0
+#     clicked_fname = clicked_path + "/" + "clicked_" + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".pkl"
+#     done = False
+    
+#     with open(clicked_fname, "wb") as clicked_file:
+#         data_ptr = clicked_list[current]
+#         while not done:
+#             i = data_ptr * 4 // num_points
+#             raw_data_fname = data_path + "/dataPoints." + str(i) + ".pkl"
+#             with bz2.BZ2File(raw_data_fname, 'rb') as f:
+#                 while not done:
+#                     try: 
+#                         metadata = cpickle.load(f)
+#                         cpickle.dump(metadata, clicked_file)
+#                         if (line_num == clicked_list[current]):
+#                             rdata = cpickle.load(f)
+#                             # cpickle.dump(rdata, clicked_file)
+#                             current += 1
+#                             if current >= len(clicked_list):
+#                                 done = True
+#                         else:
+#                             cpickle.load(f)
+#                         line_num += 1
+#                     except EOFError:
+#                         continue  
 
 flush_clicked()
 # read_clicked()
